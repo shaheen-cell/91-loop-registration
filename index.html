@@ -330,14 +330,16 @@ async function uploadPdfToGoogleDrive(pdf,fileName){
   if(!GOOGLE_DRIVE_WEB_APP_URL || GOOGLE_DRIVE_WEB_APP_URL.includes('PASTE_YOUR_GOOGLE_APPS_SCRIPT'))
     throw new Error('Google Drive upload has not been configured yet.');
   const base64=pdf.output('datauristring').split(',')[1];
-  const response=await fetch(GOOGLE_DRIVE_WEB_APP_URL,{
+  // Google Apps Script redirects its response to googleusercontent.com, which
+  // cannot reliably be read cross-origin from a GitHub Pages website.
+  // no-cors permits sending the POST without trying to inspect that response.
+  await fetch(GOOGLE_DRIVE_WEB_APP_URL,{
     method:'POST',
+    mode:'no-cors',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({fileName,mimeType:'application/pdf',base64})
   });
-  const result=await response.json();
-  if(!result.success) throw new Error(result.error||'Google Drive upload failed.');
-  return result;
+  return {submitted:true};
 }
 
 async function makePdf(save=true){
@@ -534,9 +536,9 @@ async function makePdf(save=true){
     try{
       show('PDF downloaded. Saving a copy to Google Drive…');
       await uploadPdfToGoogleDrive(pdf,fileName);
-      show('PDF downloaded and successfully saved to Google Drive.');
+      show('PDF downloaded. Google Drive upload request sent — please check the Drive folder to confirm it arrived.');
     }catch(err){
-      show('PDF downloaded, but Google Drive upload failed: '+err.message,true);
+      show('PDF downloaded, but the Drive upload request could not be sent: '+err.message,true);
     }
   }
   return pdf;
