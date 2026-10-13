@@ -532,12 +532,18 @@ async function makePdf(save=true){
     const safeName=(v.name||'Guest').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'');
     const dateStamp=new Date().toISOString().slice(0,10);
     const fileName='91-Loop-Guest-Registration-'+safeName+'-'+dateStamp+'.pdf';
-    pdf.save(fileName);
+    // iPad/Safari: send the Drive upload BEFORE starting the local download.
+    // Starting a download first can suspend/cancel an in-flight background POST on iOS.
     try{
-      show('PDF downloaded. Saving a copy to Google Drive…');
+      show('Saving registration to Google Drive…');
       await uploadPdfToGoogleDrive(pdf,fileName);
-      show('PDF downloaded. Google Drive upload request sent — please check the Drive folder to confirm it arrived.');
+      // Give iPad Safari time to dispatch the no-cors POST before opening the download.
+      await new Promise(resolve=>setTimeout(resolve,1800));
+      pdf.save(fileName);
+      show('Google Drive upload sent and PDF downloaded.');
     }catch(err){
+      // Preserve the local PDF even if the network request cannot be sent.
+      pdf.save(fileName);
       show('PDF downloaded, but the Drive upload request could not be sent: '+err.message,true);
     }
   }
