@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1F3A">
+<title>91 Loop | Digital Guest Registration</title>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --navy:#0B1F3A; --navy2:#173B63; --grey:#667085; --light:#F4F6F8;
+  --line:#D5DBE3; --white:#fff; --danger:#A43838; --ok:#1E5A43;
+}
+* { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body {
+  margin:0; min-width:320px; color:var(--navy); background:var(--light);
+  font-family:Arial,Helvetica,sans-serif; font-size:16px; line-height:1.45;
+}
+.page { width:min(100% - 28px, 980px); margin:22px auto 45px; }
+.card { background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:0 12px 34px rgba(11,31,58,.08); }
+.header { padding:24px 28px; background:var(--navy); color:#fff; }
+.header h1 { margin:0 0 5px; font-size:clamp(1.7rem,4vw,2.35rem); line-height:1.1; }
+.header p { margin:0; color:#DDE5EF; }
+.content { padding:26px 28px 32px; }
+.notice { display:none; margin-bottom:18px; padding:12px 14px; border-radius:9px; font-weight:700; }
+.notice.ok { display:block; color:var(--ok); background:#EAF5EF; }
+.notice.error { display:block; color:var(--danger); background:#FCEBEC; }
+h2 { margin:27px 0 13px; font-size:1.13rem; }
+h2:first-of-type { margin-top:0; }
+.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px 17px; }
+.field { min-width:0; }
+.full { grid-column:1/-1; }
+label { display:block; margin-bottom:6px; font-size:.9rem; font-weight:700; }
+input, textarea {
+  display:block; width:100%; max-width:100%; min-width:0; min-height:48px;
+  padding:11px 12px; border:1px solid #B8C2CF; border-radius:9px;
+  color:var(--navy); background:#fff; font:inherit; font-size:16px;
+}
+textarea { min-height:82px; resize:vertical; }
+input:focus,textarea:focus,button:focus-visible,summary:focus-visible {
+  outline:3px solid rgba(23,59,99,.20); outline-offset:2px; border-color:var(--navy2);
+}
+.document-box { margin-bottom:19px; padding:16px; border:1px solid var(--line); border-radius:12px; background:#FAFBFC; }
+.document-box p { margin:3px 0 12px; color:var(--grey); font-size:.88rem; }
+.doc-actions,.camera-actions,.actions { display:flex; flex-wrap:wrap; gap:10px; }
+.file-input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+button,.file-button {
+  min-height:46px; display:inline-flex; align-items:center; justify-content:center;
+  padding:0 16px; border-radius:9px; border:1px solid var(--navy2);
+  font:700 .92rem Arial,sans-serif; cursor:pointer; text-decoration:none;
+  touch-action:manipulation;
+}
+.secondary,.file-button { color:var(--navy2); background:#fff; }
+.primary { color:#fff; background:var(--navy2); }
+.status { display:block; margin-top:10px; color:var(--grey); font-size:.86rem; overflow-wrap:anywhere; }
+.preview { display:none; margin-top:12px; max-width:100%; max-height:260px; border-radius:9px; border:1px solid var(--line); }
+.camera { display:none; margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.camera.active { display:block; }
+video { width:100%; max-height:330px; object-fit:contain; border-radius:8px; background:#111; }
+.terms { margin-top:25px; border:1px solid var(--line); border-radius:11px; overflow:hidden; }
+summary { padding:14px 16px; font-weight:700; cursor:pointer; background:#FAFBFC; }
+.terms-body { max-height:320px; overflow:auto; padding:8px 18px 18px; color:#344054; font-size:.92rem; white-space:pre-line; }
+.consents { display:grid; gap:10px; margin-top:16px; }
+.consent { display:flex; gap:10px; align-items:flex-start; padding:12px; border:1px solid var(--line); border-radius:10px; }
+.consent input { width:22px; min-height:22px; flex:0 0 22px; margin:1px 0 0; accent-color:var(--navy2); }
+.consent label { margin:0; font-weight:400; }
+.sig-head { display:flex; justify-content:space-between; gap:10px; align-items:baseline; margin-top:26px; }
+.sig-head h2 { margin:0; }
+.sig-head span { color:var(--grey); font-size:.84rem; }
+.pad { position:relative; margin-top:11px; overflow:hidden; border:2px dashed #9AA7B5; border-radius:11px; background:#FCFDFE; touch-action:none; }
+canvas { display:block; width:100%; height:175px; touch-action:none; }
+.sig-line { position:absolute; left:18px; right:18px; bottom:28px; border-top:1px solid #7C8793; pointer-events:none; }
+.sig-label { position:absolute; right:18px; bottom:7px; color:var(--grey); font-size:.76rem; pointer-events:none; }
+.footer-actions { margin-top:22px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.footer-actions button { width:100%; padding:0 10px; white-space:normal; }
+@media (max-width:820px) {
+  .page { width:min(100% - 20px, 760px); margin:10px auto 28px; }
+  .header { padding:20px; }
+  .content { padding:20px; }
+  .grid { grid-template-columns:1fr; gap:13px; }
+  .full { grid-column:auto; }
+  .footer-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  canvas { height:155px; }
+}
+@media (max-width:520px) {
+  .page { width:100%; margin:0; }
+  .card { border:0; border-radius:0; }
+  .header,.content { padding-left:17px; padding-right:17px; }
+  .footer-actions { grid-template-columns:1fr; }
+  .doc-actions,.camera-actions { display:grid; grid-template-columns:1fr; }
+  .doc-actions > *, .camera-actions > * { width:100%; }
+}
+@media (orientation:landscape) and (min-width:821px) and (max-width:1180px) {
+  .page { width:min(100% - 28px, 1000px); margin-top:12px; }
+  .content { padding-top:21px; }
+  canvas { height:145px; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+<section class="card">
+<header class="header">
+  <h1>91 Loop Boutique Hostel</h1>
+  <p>Digital Guest Registration · Cape Town</p>
+</header>
+<div class="content">
+<div id="message" class="notice" role="status" aria-live="polite"></div>
+<form id="guest-form" novalidate>
+<h2>Guest information</h2>
+
+<div class="document-box">
+  <strong>ID / Passport verification</strong>
+  <p>Upload an image/PDF or use the device camera to photograph the guest's ID or passport.</p>
+  <div class="doc-actions">
+    <label class="file-button" for="document">Upload ID / Passport</label>
+    <input class="file-input" id="document" type="file" accept="image/*,.pdf,application/pdf">
+    <button type="button" class="secondary" id="open-camera">Take Photo</button>
+    <button type="button" class="secondary" id="remove-document">Remove</button>
+  </div>
+  <span id="document-status" class="status">No document attached.</span>
+  <img id="document-preview" class="preview" alt="ID or passport preview">
+  <div id="camera" class="camera">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <div class="camera-actions">
+      <button type="button" class="primary" id="capture">Capture Photo</button>
+      <button type="button" class="secondary" id="close-camera">Close Camera</button>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="field full"><label for="name">Full name and surname *</label><input id="name" name="name" autocomplete="name" required></div>
+  <div class="field"><label for="identity">Passport / ID number *</label><input id="identity" name="identity" required></div>
+  <div class="field"><label for="nationality">Nationality *</label><input id="nationality" name="nationality" autocomplete="country-name" required></div>
+  <div class="field"><label for="dob">Date of birth</label><input id="dob" name="dob" type="date"></div>
+  <div class="field"><label for="reservation">Reservation number</label><input id="reservation" name="reservation"></div>
+  <div class="field"><label for="room">Room number / bed allocation</label><input id="room" name="room"></div>
+  <div class="field"><label for="checkin">Check-in date *</label><input id="checkin" name="checkin" type="date" required></div>
+  <div class="field"><label for="checkout">Check-out date *</label><input id="checkout" name="checkout" type="date" required></div>
+  <div class="field"><label for="email">Email address *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+  <div class="field"><label for="telephone">Telephone number *</label><input id="telephone" name="telephone" type="tel" autocomplete="tel" required></div>
+  <div class="field full"><label for="representative">91 Loop representative</label><input id="representative" name="representative"></div>
+</div>
+
+<details class="terms"><summary>Read the complete terms and conditions</summary><div id="terms" class="terms-body"></div></details>
+
+<div class="consents">
+  <div class="consent"><input id="accept" type="checkbox" required><label for="accept">I confirm that I have read, understood and voluntarily accepted all terms and conditions in this agreement, including the acknowledgement of risk, limitation of liability and indemnity. *</label></div>
+  <div class="consent"><input id="popia" type="checkbox" required><label for="popia">I consent to the collection, processing, storage and retention of my personal information in accordance with POPIA, as described in the agreement. *</label></div>
+</div>
+
+<div class="sig-head"><h2>Guest signature *</h2><span>Use your finger or stylus</span></div>
+<div class="pad"><canvas id="signature"></canvas><span class="sig-line"></span><span class="sig-label">Guest signature</span></div>
+
+<div class="footer-actions">
+  <button type="button" class="secondary" id="clear-signature">Clear Signature</button>
+  <button type="button" class="secondary" id="clear-form">Clear Registration</button>
+  <button type="button" class="secondary" id="download">Download PDF</button>
+  <button type="submit" class="primary">Complete Registration</button>
+</div>
+</form>
+</div>
+</section>
+</main>
+
+<script>
+const termsText=`By signing this registration form, the guest confirms that the information supplied is correct, agrees to comply with the property rules, and acknowledges the accommodation terms presented by 91 Loop Boutique Hostel.`;
+document.getElementById('terms').textContent=termsText;
+
+const form=document.getElementById('guest-form');
+const message=document.getElementById('message');
+const canvas=document.getElementById('signature');
+const ctx=canvas.getContext('2d');
+let drawing=false, signed=false, last=null;
+let stream=null, documentData='', documentName='', documentType='';
+
+function show(text,error=false){
+  message.textContent=text; message.className='notice '+(error?'error':'ok');
+  message.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function hideMessage(){ message.className='notice'; message.textContent=''; }
+
+function resizeCanvas(){
+  const ratio=Math.max(window.devicePixelRatio||1,1);
+  const rect=canvas.getBoundingClientRect();
+  let saved=null;
+  if(canvas.width && canvas.height) saved=canvas.toDataURL();
+  canvas.width=Math.round(rect.width*ratio);
+  canvas.height=Math.round(rect.height*ratio);
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0B1F3A';
+  if(saved && signed){
+    const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,rect.width,rect.height); img.src=saved;
+  }
+}
+function point(e){
+  const r=canvas.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  return {x:t.clientX-r.left,y:t.clientY-r.top};
+}
+function start(e){ e.preventDefault(); drawing=true; last=point(e); }
+function move(e){
+  if(!drawing)return; e.preventDefault(); const p=point(e);
+  ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+  last=p; signed=true;
+}
+function end(){ drawing=false; last=null; }
+['pointerdown','mousedown','touchstart'].forEach(ev=>canvas.addEventListener(ev,start,{passive:false}));
+['pointermove','mousemove','touchmove'].forEach(ev=>canvas.addEventListener(ev,move,{passive:false}));
+['pointerup','pointerleave','mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>canvas.addEventListener(ev,end));
+window.addEventListener('resize',()=>{ clearTimeout(window.__rt); window.__rt=setTimeout(resizeCanvas,120); });
+resizeCanvas();
+
+document.getElementById('clear-signature').onclick=()=>{
+  ctx.clearRect(0,0,canvas.width,canvas.height); signed=false; hideMessage();
+};
+
+const docInput=document.getElementById('document');
+const docStatus=document.getElementById('document-status');
+const docPreview=document.getElementById('document-preview');
+
+function setDocument(data,name,type){
+  documentData=data||''; documentName=name||''; documentType=type||'';
+  docStatus.textContent=documentName ? 'Attached: '+documentName : 'No document attached.';
+  if(documentData && documentType.startsWith('image/')){ docPreview.src=documentData; docPreview.style.display='block'; }
+  else { docPreview.removeAttribute('src'); docPreview.style.display='none'; }
+}
+docInput.addEventListener('change',()=>{
+  const f=docInput.files && docInput.files[0]; if(!f)return;
+  documentName=f.name; documentType=f.type||'application/octet-stream';
+  if(f.type.startsWith('image/')){
+    const reader=new FileReader(); reader.onload=()=>setDocument(reader.result,f.name,f.type); reader.readAsDataURL(f);
+  } else setDocument('',f.name,f.type);
+});
+document.getElementById('remove-document').onclick=()=>{ docInput.value=''; setDocument('','',''); };
+
+const camera=document.getElementById('camera'), video=document.getElementById('camera-video');
+async function stopCamera(){ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;} camera.classList.remove('active'); video.srcObject=null; }
+document.getElementById('open-camera').onclick=async()=>{
+  try {
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    video.srcObject=stream; camera.classList.add('active');
+  } catch(e) {
+    show('Camera access was not available. Please use Upload ID / Passport instead.',true);
+  }
+};
+document.getElementById('close-camera').onclick=stopCamera;
+document.getElementById('capture').onclick=()=>{
+  if(!video.videoWidth) return show('The camera is still starting. Please try again.',true);
+  const c=document.createElement('canvas'); c.width=video.videoWidth; c.height=video.videoHeight;
+  c.getContext('2d').drawImage(video,0,0);
+  setDocument(c.toDataURL('image/jpeg',.88),'passport-photo-'+Date.now()+'.jpg','image/jpeg');
+  stopCamera();
+};
+window.addEventListener('beforeunload',stopCamera);
+
+function values(){
+  return Object.fromEntries(new FormData(form).entries());
+}
+function validate(){
+  if(!form.checkValidity()){ form.reportValidity(); return false; }
+  if(!signed){ show('Please add the guest signature before continuing.',true); return false; }
+  return true;
+}
+function addPdfField(pdf,label,value,x,y,maxWidth){
+  pdf.setFont('helvetica','bold'); pdf.text(label+':',x,y);
+  pdf.setFont('helvetica','normal');
+  const lines=pdf.splitTextToSize(value||'—',maxWidth);
+  pdf.text(lines,x+118,y); return y+Math.max(16,lines.length*12);
+}
+async function makePdf(save=true){
+  if(!validate())return;
+  if(!window.jspdf) return show('PDF library could not load. Please check the internet connection and try again.',true);
+
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF({unit:'pt',format:'a4'});
+  const v=values();
+  const pageW=595.28, pageH=841.89;
+  const left=30, right=30, contentW=pageW-left-right;
+
+  // Header
+  pdf.setFillColor(11,31,58);
+  pdf.rect(0,0,pageW,58,'F');
+  pdf.setTextColor(255,255,255);
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(16);
+  pdf.text('91 Loop Boutique Hostel',left,27);
+  pdf.setFont('helvetica','normal');
+  pdf.setFontSize(7.5);
+  pdf.text('Digital Guest Registration | Cape Town',left,41);
+  pdf.text('Completed: '+new Date().toLocaleString(),pageW-right-150,41);
+
+  let y=76;
+  pdf.setTextColor(11,31,58);
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(9.5);
+  pdf.text('GUEST INFORMATION',left,y);
+  y+=7;
+  pdf.setDrawColor(205,212,220);
+  pdf.line(left,y,left+contentW,y);
+  y+=10;
+
+  const gap=14, colW=(contentW-gap)/2;
+  const rows=[
+    [['Full name and surname',v.name],['Passport / ID number',v.identity]],
+    [['Nationality',v.nationality],['Date of birth',v.dob]],
+    [['Reservation number',v.reservation],['Room / bed allocation',v.room]],
+    [['Check-in date',v.checkin],['Check-out date',v.checkout]],
+    [['Email address',v.email],['Telephone number',v.telephone]],
+    [['91 Loop representative',v.representative],['ID / Passport attachment',documentName||'Not attached']]
+  ];
+
+  function field(label,value,x,yy,w){
+    pdf.setFont('helvetica','bold');
+    pdf.setFontSize(6.2);
+    pdf.setTextColor(90,100,115);
+    pdf.text(label.toUpperCase(),x,yy);
+    pdf.setFont('helvetica','normal');
+    pdf.setFontSize(7.6);
+    pdf.setTextColor(11,31,58);
+    const lines=pdf.splitTextToSize(value||'—',w);
+    pdf.text(lines.slice(0,2),x,yy+9,{lineHeightFactor:1.05});
+  }
+
+  rows.forEach(row=>{
+    field(row[0][0],row[0][1],left,y,colW);
+    field(row[1][0],row[1][1],left+colW+gap,y,colW);
+    y+=29;
+  });
+
+  // Full terms and conditions
+  y+=2;
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(9.5);
+  pdf.setTextColor(11,31,58);
+  pdf.text('TERMS & CONDITIONS',left,y);
+  y+=7;
+  pdf.setDrawColor(205,212,220);
+  pdf.line(left,y,left+contentW,y);
+  y+=9;
+
+  pdf.setFont('helvetica','normal');
+  pdf.setFontSize(5.35);
+  pdf.setTextColor(45,55,70);
+
+  const terms = (typeof termsText === 'string' ? termsText : '').replace(/\r/g,'').trim();
+  const termsLines = pdf.splitTextToSize(terms, contentW);
+  const availableTermsHeight = 310;
+  const lineH = 6.0;
+  const maxLines = Math.floor(availableTermsHeight/lineH);
+
+  if(termsLines.length <= maxLines){
+    pdf.text(termsLines,left,y,{lineHeightFactor:1.12});
+    y += termsLines.length*lineH + 8;
+  } else {
+    // Use two compact columns when the complete terms need more room.
+    const termsGap=12, termsColW=(contentW-termsGap)/2;
+    const colLines=Math.ceil(termsLines.length/2);
+    const leftLines=termsLines.slice(0,colLines);
+    const rightLines=termsLines.slice(colLines);
+    pdf.setFontSize(4.8);
+    pdf.text(leftLines,left,y,{lineHeightFactor:1.08});
+    pdf.text(rightLines,left+termsColW+termsGap,y,{lineHeightFactor:1.08});
+    y += Math.max(leftLines.length,rightLines.length)*5.2 + 8;
+  }
+
+  // Keep consent/signature in lower section.
+  const signatureStart=Math.max(y,650);
+  y=signatureStart;
+
+  pdf.setDrawColor(205,212,220);
+  pdf.line(left,y,left+contentW,y);
+  y+=11;
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(7);
+  pdf.setTextColor(30,90,67);
+  pdf.text('Terms & Conditions accepted: YES',left,y);
+  pdf.text('POPIA consent: YES',left+190,y);
+  y+=12;
+
+  pdf.setFont('helvetica','normal');
+  pdf.setFontSize(5.8);
+  pdf.setTextColor(52,64,84);
+  const declaration='The guest confirms that the information supplied is correct and that the above terms and conditions have been read, understood and voluntarily accepted, including the acknowledgement of risk, limitation of liability, indemnity and POPIA consent.';
+  const dlines=pdf.splitTextToSize(declaration,contentW);
+  pdf.text(dlines,left,y,{lineHeightFactor:1.08});
+  y+=dlines.length*6+7;
+
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(8);
+  pdf.setTextColor(11,31,58);
+  pdf.text('GUEST SIGNATURE',left,y);
+  y+=5;
+  try{
+    pdf.addImage(canvas.toDataURL('image/png'),'PNG',left,y,170,54,undefined,'FAST');
+  }catch(e){}
+  pdf.setDrawColor(124,135,147);
+  pdf.line(left,y+56,left+180,y+56);
+  pdf.setFont('helvetica','normal');
+  pdf.setFontSize(6);
+  pdf.setTextColor(102,112,133);
+  pdf.text('Guest signature',left,y+65);
+  pdf.text('Digitally signed: '+new Date().toLocaleString(),left+210,y+32);
+
+  // Footer
+  pdf.setDrawColor(213,219,227);
+  pdf.line(left,pageH-28,left+contentW,pageH-28);
+  pdf.setFontSize(6);
+  pdf.setTextColor(102,112,133);
+  pdf.text('91 Loop Boutique Hostel | Digital Guest Registration',left,pageH-17);
+  pdf.text('Page 1 of 1',pageW-right-38,pageH-17);
+
+  if(save){
+    pdf.save('91-Loop-Guest-Registration-'+(v.name||'Guest').replace(/[^a-z0-9]+/gi,'-')+'.pdf');
+  }
+  return pdf;
+}
+
+document.getElementById('download').onclick=()=>makePdf(true);
+
+document.getElementById('clear-form').onclick=async()=>{
+  form.reset(); setDocument('','',''); ctx.clearRect(0,0,canvas.width,canvas.height); signed=false; await stopCamera(); hideMessage();
+};
+
+form.addEventListener('submit',e=>{
+  e.preventDefault(); if(!validate())return;
+  const record={...values(),signedAt:new Date().toISOString(),signature:canvas.toDataURL(),documentName,documentType};
+  try{ localStorage.setItem('91LoopLatestRegistration',JSON.stringify(record)); }catch(e){}
+  show('Registration complete. You can now download the signed PDF.');
+});
+</script>
+</body>
+</html>
